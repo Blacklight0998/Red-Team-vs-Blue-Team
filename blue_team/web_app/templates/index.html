@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070a10">
+    <title>NexusSIEM | Security Operations</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nexus: {
+                            950: '#070a10',
+                            900: '#0b0f17',
+                            850: '#101621',
+                            800: '#151c28',
+                            700: '#202b3a',
+                            600: '#2b394b',
+                            500: '#506075',
+                            400: '#7f8da1',
+                            300: '#b2becf',
+                            200: '#d7dee8',
+                            100: '#f0f4f8'
+                        },
+                        signal: {
+                            green: '#36d98a',
+                            amber: '#f1b955',
+                            red: '#ff6078',
+                            blue: '#65aaff'
+                        }
+                    },
+                    boxShadow: {
+                        panel: '0 18px 55px rgba(0,0,0,.27)',
+                        lift: '0 10px 30px rgba(0,0,0,.18)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { background: #070a10; }
+        body {
+            background:
+                radial-gradient(circle at 82% -6%, rgba(101,170,255,.08), transparent 27%),
+                radial-gradient(circle at 10% 46%, rgba(54,217,138,.035), transparent 25%),
+                #070a10;
+        }
+
+        ::-webkit-scrollbar { width: 9px; height: 9px; }
+        ::-webkit-scrollbar-track { background: #0b0f17; }
+        ::-webkit-scrollbar-thumb { background: #273345; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #34445a; }
+
+        .grid-bg {
+            background-image:
+                linear-gradient(rgba(255,255,255,.016) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.016) 1px, transparent 1px);
+            background-size: 26px 26px;
+        }
+
+        .panel {
+            border: 1px solid rgba(255,255,255,.055);
+            background: rgba(11,15,23,.78);
+            box-shadow: 0 18px 55px rgba(0,0,0,.18);
+            backdrop-filter: blur(14px);
+        }
+
+        .scan {
+            background: linear-gradient(
+                to bottom,
+                transparent,
+                rgba(101,170,255,.045),
+                transparent
+            );
+            animation: scan 5s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateY(-120%); }
+            100% { transform: translateY(120%); }
+        }
+
+        .live-dot {
+            box-shadow:
+                0 0 0 4px rgba(54,217,138,.08),
+                0 0 18px rgba(54,217,138,.45);
+        }
+
+        .severity-row {
+            position: relative;
+        }
+
+        .severity-row::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            opacity: .9;
+        }
+
+        .severity-critical::before { background: #ff6078; }
+        .severity-warning::before { background: #f1b955; }
+        .severity-info::before { background: #65aaff; }
+
+        .action-card {
+            transition: transform .18s ease, background .18s ease, border-color .18s ease;
+        }
+
+        .action-card:hover {
+            transform: translateY(-2px);
+            background: rgba(16,22,33,.92);
+            border-color: rgba(255,255,255,.09);
+        }
+
+        .action-card:disabled {
+            opacity: .55;
+            cursor: wait;
+            transform: none;
+        }
+
+        .toast {
+            animation: toastIn .18s ease-out forwards;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(14px);
+            animation: revealIn .55s cubic-bezier(.2,.7,.2,1) forwards;
+            animation-delay: var(--delay, 0ms);
+        }
+
+        @keyframes revealIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .metric-number {
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 24px rgba(101,170,255,.08);
+        }
+
+        .stream-bar {
+            background: linear-gradient(
+                90deg,
+                rgba(54,217,138,.18),
+                rgba(54,217,138,.72),
+                rgba(101,170,255,.55),
+                rgba(54,217,138,.18)
+            );
+            background-size: 220% 100%;
+            animation: streamFlow 3.2s ease-in-out infinite;
+        }
+
+        @keyframes streamFlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .pulse-ring {
+            position: relative;
+        }
+
+        .pulse-ring::after {
+            content: "";
+            position: absolute;
+            inset: -5px;
+            border: 1px solid currentColor;
+            border-radius: 999px;
+            opacity: 0;
+            animation: ringPulse 2.4s ease-out infinite;
+        }
+
+        @keyframes ringPulse {
+            0% { transform: scale(.65); opacity: .42; }
+            75%, 100% { transform: scale(1.8); opacity: 0; }
+        }
+
+        .orbital::before,
+        .orbital::after {
+            content: "";
+            position: absolute;
+            inset: 18%;
+            border: 1px solid rgba(101,170,255,.11);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: orbitSpin 8s linear infinite;
+        }
+
+        .orbital::after {
+            inset: 5%;
+            border-color: rgba(54,217,138,.07);
+            animation-duration: 14s;
+            animation-direction: reverse;
+        }
+
+        @keyframes orbitSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .event-row {
+            animation: rowIn .42s cubic-bezier(.2,.7,.2,1) both;
+            animation-delay: calc(var(--row-index, 0) * 45ms);
+        }
+
+        @keyframes rowIn {
+            from { opacity: 0; transform: translateX(-7px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .subsystem-dot {
+            animation: dotPulse 2.2s ease-in-out infinite;
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { opacity: .65; box-shadow: 0 0 0 0 rgba(54,217,138,0); }
+            50% { opacity: 1; box-shadow: 0 0 0 4px rgba(54,217,138,.06), 0 0 12px rgba(54,217,138,.22); }
+        }
+
+        .action-icon {
+            transition: transform .22s ease, box-shadow .22s ease;
+        }
+
+        .action-card:hover .action-icon {
+            transform: translateY(-2px) scale(1.04);
+        }
+
+        .micro-shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .micro-shine::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -75%;
+            width: 45%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+            transform: skewX(-18deg);
+            animation: shine 5.5s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shine {
+            0%, 60% { left: -75%; }
+            78%, 100% { left: 140%; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+            }
+
+            .reveal {
+                opacity: 1;
+                transform: none;
+            }
+        }
+    </style>
+
+</head>
+
+<body class="min-h-screen text-nexus-100 font-sans antialiased selection:bg-signal-blue/20">
+<div class="min-h-screen lg:flex">
+
+    <!-- Desktop navigation -->
+    <aside class="hidden lg:flex lg:w-64 xl:w-72 shrink-0 flex-col border-r border-white/5 bg-nexus-950/90">
+        <div class="border-b border-white/5 px-6 py-7">
+            <div class="flex items-center gap-3">
+                <div class="relative flex h-11 w-11 items-center justify-center rounded-xl border border-signal-blue/20 bg-signal-blue/10">
+                    <div class="absolute inset-1.5 rounded-lg border border-signal-blue/15"></div>
+                    <svg class="relative h-5 w-5 text-signal-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3 5 6v5c0 4.7 2.9 8.7 7 10 4.1-1.3 7-5.3 7-10V6l-7-3Z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.5 12.2 11 13.7l3.7-3.9"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-sm font-bold tracking-[.2em] text-white">NEXUSSIEM</div>
+                    <div class="mt-0.5 text-[9px] uppercase tracking-[.25em] text-nexus-500">Security Operations</div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 py-6">
+            <div class="px-3 pb-3 text-[9px] font-bold uppercase tracking-[.22em] text-nexus-600">Command Center</div>
+
+            <a href="#" class="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[.035] px-3 py-2.5 text-sm text-white">
+                <svg class="h-4 w-4 text-signal-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13h4l2.5-8L14 19l2.5-6H21"/>
+                </svg>
+                Overview
+            </a>
+
+            <a href="#audit" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-nexus-400 transition hover:bg-white/[.03] hover:text-white">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17h6m-3-14v4m-5 0h10M6 21h12a2 2 0 0 0 2-2V7H4v12a2 2 0 0 0 2 2Z"/>
+                </svg>
+                Atom Audit
+            </a>
+
+            <a href="#alerts" class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-nexus-400 transition hover:bg-white/[.03] hover:text-white">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.6A2 2 0 0 1 18 14.1V11a6 6 0 1 0-12 0v3.1a2 2 0 0 1-.6 1.3L4 17h5m2 0v2a1 1 0 0 0 2 0v-2"/>
+                </svg>
+                Security Events
+            </a>
+
+            <div class="px-3 pb-3 pt-8 text-[9px] font-bold uppercase tracking-[.22em] text-nexus-600">Response</div>
+
+            <a href="#actions" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-nexus-400 transition hover:bg-white/[.03] hover:text-white">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v4m0 10v4M3 12h4m10 0h4M5.6 5.6l2.8 2.8m7.2 7.2 2.8 2.8m0-12.8-2.8 2.8m-7.2 7.2-2.8 2.8"/>
+                </svg>
+                Defense Actions
+            </a>
+
+            <div class="mt-7 rounded-xl border border-white/5 bg-nexus-900/70 p-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-semibold uppercase tracking-[.18em] text-nexus-600">Node</span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-signal-green/15 bg-signal-green/5 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-signal-green">
+                        <span class="h-1.5 w-1.5 rounded-full bg-signal-green"></span>
+                        Online
+                    </span>
+                </div>
+                <div class="mt-3 font-mono text-xs text-nexus-300">BlueTeam / Azure</div>
+                <div class="mt-1 text-[10px] leading-4 text-nexus-600">Linux defensive node</div>
+            </div>
+        </nav>
+
+        <div class="border-t border-white/5 px-6 py-5">
+            <div class="font-mono text-[9px] tracking-[.12em] text-nexus-600">NXS // DEFENSIVE OPERATIONS</div>
+            <div class="mt-1 font-mono text-[9px] text-nexus-700">AUTOMATED RESPONSE PLATFORM</div>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="min-w-0 flex-1">
+        <header class="sticky top-0 z-30 border-b border-white/5 bg-nexus-950/85 backdrop-blur-xl">
+            <div class="mx-auto flex max-w-[1650px] items-center justify-between px-5 py-4 sm:px-7 lg:px-9">
+                <div class="flex items-center gap-4">
+                    <div class="lg:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/[.025]">
+                        <svg class="h-4 w-4 text-signal-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3 5 6v5c0 4.7 2.9 8.7 7 10 4.1-1.3 7-5.3 7-10V6l-7-3Z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-semibold uppercase tracking-[.22em] text-nexus-600">Security Operations Center</div>
+                        <h1 class="mt-1 text-base font-semibold tracking-tight text-white sm:text-lg">Blue Team Command Center</h1>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 sm:gap-5">
+                    <div class="hidden md:block text-right">
+                        <div class="text-[9px] uppercase tracking-[.18em] text-nexus-600">Environment</div>
+                        <div class="mt-1 font-mono text-[10px] text-nexus-300">AZURE / UBUNTU / PUBLIC NODE</div>
+                    </div>
+                    <div class="flex items-center gap-2 rounded-full border border-signal-green/15 bg-signal-green/[.045] px-3 py-2">
+                        <span class="live-dot h-2 w-2 rounded-full bg-signal-green"></span>
+                        <span class="text-[9px] font-bold uppercase tracking-[.15em] text-signal-green">Operational</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="relative grid-bg">
+            <div class="pointer-events-none absolute inset-0 overflow-hidden opacity-30">
+                <div class="scan h-40 w-full"></div>
+            </div>
+
+            <div class="relative mx-auto max-w-[1650px] space-y-6 px-5 py-6 sm:px-7 lg:px-9 lg:py-8">
+
+                {% set ns = namespace(total=0, critical=0, warning=0, info=0, blocked=0) %}
+                {% for alerta in alertas %}
+                    {% set ns.total = ns.total + 1 %}
+                    {% if alerta.nivel == 'CRITICAL' %}{% set ns.critical = ns.critical + 1 %}{% endif %}
+                    {% if alerta.nivel == 'WARNING' %}{% set ns.warning = ns.warning + 1 %}{% endif %}
+                    {% if alerta.nivel == 'INFO' %}{% set ns.info = ns.info + 1 %}{% endif %}
+                    {% if alerta.accion and 'bloque' in alerta.accion|lower %}{% set ns.blocked = ns.blocked + 1 %}{% endif %}
+                {% endfor %}
+
+                {% set risk_score = [((ns.critical * 35) + (ns.warning * 10)), 100] | min %}
+                {% if risk_score >= 60 %}
+                    {% set risk_label = 'HIGH' %}
+                    {% set risk_color = 'signal-red' %}
+                {% elif risk_score >= 25 %}
+                    {% set risk_label = 'ELEVATED' %}
+                    {% set risk_color = 'signal-amber' %}
+                {% else %}
+                    {% set risk_label = 'LOW' %}
+                    {% set risk_color = 'signal-green' %}
+                {% endif %}
+
+                <!-- Command overview -->
+                <section class="panel micro-shine overflow-hidden rounded-2xl reveal" style="--delay: 40ms">
+                    <div class="grid xl:grid-cols-[1fr_auto]">
+                        <div class="p-6 sm:p-8">
+                            <div class="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.24em] text-signal-blue">
+                                <span class="h-1.5 w-1.5 rounded-full bg-signal-blue shadow-[0_0_10px_rgba(101,170,255,.55)]"></span>
+                                Defensive Monitoring
+                            </div>
+
+                            <div class="mt-4 flex items-center gap-3">
+                                <h2 class="max-w-3xl text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                                    Visibility first. Response ready.
+                                </h2>
+                                <span class="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-signal-green/15 bg-signal-green/5 px-2 py-1 font-mono text-[8px] font-semibold tracking-wider text-signal-green">
+                                    <span class="pulse-ring h-1.5 w-1.5 rounded-full bg-signal-green"></span>
+                                    LIVE
+                                </span>
+                            </div>
+
+                            <p class="mt-3 max-w-2xl text-sm leading-6 text-nexus-400">
+                                NexusSIEM centraliza telemetría, detección y respuesta sobre el nodo BlueTeam.
+                                Los eventos recientes permanecen disponibles para análisis operativo.
+                            </p>
+
+                            <div class="mt-6 flex flex-wrap gap-2">
+                                <span class="rounded-md border border-white/5 bg-white/[.025] px-2.5 py-1.5 font-mono text-[9px] text-nexus-500">FAIL2BAN</span>
+                                <span class="rounded-md border border-white/5 bg-white/[.025] px-2.5 py-1.5 font-mono text-[9px] text-nexus-500">FIREWALL</span>
+                                <span class="rounded-md border border-white/5 bg-white/[.025] px-2.5 py-1.5 font-mono text-[9px] text-nexus-500">ATOM</span>
+                                <span class="rounded-md border border-white/5 bg-white/[.025] px-2.5 py-1.5 font-mono text-[9px] text-nexus-500">NETWORK IDS</span>
+                            </div>
+                        </div>
+
+                        <div class="relative flex min-w-[290px] flex-col justify-between border-t border-white/5 bg-black/10 p-6 xl:border-l xl:border-t-0 sm:p-8 orbital">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[9px] font-semibold uppercase tracking-[.2em] text-nexus-600">Telemetry</span>
+                                <span class="font-mono text-[10px] text-signal-green">STREAMING</span>
+                            </div>
+
+                            <div class="mt-6">
+                                <div class="flex items-end gap-3">
+                                    <div id="telemetry-total" class="metric-number text-4xl font-semibold tracking-tight text-white" data-live-key="telemetry-total" data-target="{{ ns.total }}">{{ ns.total }}</div>
+                                    <div class="pb-1 text-[10px] uppercase tracking-[.14em] text-nexus-600">events buffered</div>
+                                </div>
+                                <div class="mt-4 flex h-2 overflow-hidden rounded-full bg-nexus-800">
+                                    {% set total_events = alertas|length %}
+                                    {% if total_events > 0 %}
+                                        <div class="h-full bg-signal-red" style="width: {{ (ns.critical / total_events * 100)|round(1) }}%"></div>
+                                        <div class="h-full bg-signal-amber" style="width: {{ (ns.warning / total_events * 100)|round(1) }}%"></div>
+                                        <div class="h-full bg-signal-blue" style="width: {{ (ns.info / total_events * 100)|round(1) }}%"></div>
+                                    {% else %}
+                                        <div class="h-full w-full bg-signal-green/50"></div>
+                                    {% endif %}
+                                </div>
+                                <div class="mt-3 grid grid-cols-3 gap-3 text-[9px] font-mono">
+                                    <span class="text-signal-red">{{ ns.critical }} CRIT</span>
+                                    <span class="text-signal-amber">{{ ns.warning }} WARN</span>
+                                    <span class="text-signal-blue">{{ ns.info }} INFO</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 border-t border-white/5 pt-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[9px] uppercase tracking-[.15em] text-nexus-600">Threat posture</span>
+                                    <span class="font-mono text-[10px] text-{{ risk_color }}">{{ risk_label }}</span>
+                                </div>
+                                <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-nexus-800">
+                                    <div class="h-full rounded-full bg-{{ risk_color }}" style="width: {{ risk_score }}%"></div>
+                                </div>
+                                <div class="mt-2 flex items-center justify-between">
+                                    <span class="text-[9px] text-nexus-600">Risk index</span>
+                                    <span class="font-mono text-[9px] text-nexus-400">{{ risk_score }}/100</span>
+                                </div>
+                            </div>
+                            <div class="mt-5 flex items-center justify-between border-t border-white/5 pt-4">
+                                <span class="text-[9px] uppercase tracking-[.15em] text-nexus-600">Auto refresh</span>
+                                <span class="font-mono text-[10px] text-nexus-300">15 SEC</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Metrics -->
+                <section class="grid grid-cols-2 gap-4 xl:grid-cols-4 reveal" style="--delay: 120ms">
+                    <div class="panel rounded-xl p-5 transition hover:-translate-y-0.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold uppercase tracking-[.18em] text-nexus-600">Total Events</span>
+                            <span class="font-mono text-[9px] text-signal-blue">BUFFER</span>
+                        </div>
+                        <div id="metric-total" class="metric-number mt-4 text-3xl font-semibold tracking-tight text-white" data-live-key="total" data-target="{{ ns.total }}">{{ ns.total }}</div>
+                        <div class="mt-2 text-[10px] text-nexus-600">Eventos recientes en memoria</div>
+                    </div>
+
+                    <div class="panel rounded-xl border-signal-red/10 p-5 transition hover:-translate-y-0.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold uppercase tracking-[.18em] text-nexus-600">Critical</span>
+                            <span class="h-2 w-2 rounded-full bg-signal-red shadow-[0_0_12px_rgba(255,96,120,.4)]"></span>
+                        </div>
+                        <div id="metric-critical" class="metric-number mt-4 text-3xl font-semibold tracking-tight text-white" data-live-key="critical" data-target="{{ ns.critical }}">{{ ns.critical }}</div>
+                        <div class="mt-2 text-[10px] text-nexus-600">Prioridad inmediata</div>
+                    </div>
+
+                    <div class="panel rounded-xl border-signal-amber/10 p-5 transition hover:-translate-y-0.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold uppercase tracking-[.18em] text-nexus-600">Warnings</span>
+                            <span class="h-2 w-2 rounded-full bg-signal-amber shadow-[0_0_12px_rgba(241,185,85,.35)]"></span>
+                        </div>
+                        <div id="metric-warning" class="metric-number mt-4 text-3xl font-semibold tracking-tight text-white" data-live-key="warning" data-target="{{ ns.warning }}">{{ ns.warning }}</div>
+                        <div class="mt-2 text-[10px] text-nexus-600">Actividad potencialmente riesgosa</div>
+                    </div>
+
+                    <div class="panel rounded-xl border-signal-green/10 p-5 transition hover:-translate-y-0.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold uppercase tracking-[.18em] text-nexus-600">Contained</span>
+                            <span class="h-2 w-2 rounded-full bg-signal-green shadow-[0_0_12px_rgba(54,217,138,.35)]"></span>
+                        </div>
+                        <div id="metric-blocked" class="metric-number mt-4 text-3xl font-semibold tracking-tight text-white" data-live-key="blocked" data-target="{{ ns.blocked }}">{{ ns.blocked }}</div>
+                        <div class="mt-2 text-[10px] text-nexus-600">Bloqueos registrados</div>
+                    </div>
+                </section>
+
+                <!-- Operational split -->
+                <section class="grid gap-6 xl:grid-cols-[1.4fr_.8fr] reveal" style="--delay: 200ms">
+                    <!-- Actions -->
+                    <div id="actions" class="panel overflow-hidden rounded-2xl">
+                        <div class="flex flex-col justify-between gap-3 border-b border-white/5 px-5 py-5 sm:flex-row sm:items-end sm:px-6">
+                            <div>
+                                <div class="text-[9px] font-bold uppercase tracking-[.22em] text-nexus-600">Response Center</div>
+                                <h3 class="mt-1 text-base font-semibold text-white">Defensive Playbooks</h3>
+                            </div>
+                            <div class="flex items-center gap-2 font-mono text-[9px] text-nexus-600">
+                                <span class="h-1.5 w-1.5 rounded-full bg-signal-green"></span>
+                                PROTECTED ACTIONS
+                            </div>
+                        </div>
+
+                        <div class="grid gap-4 p-5 sm:p-6 md:grid-cols-3">
+                            <button onclick="ejecutarAccion('firewall')" class="action-btn action-card rounded-xl border border-white/5 bg-white/[.018] p-5 text-left">
+                                <div class="flex items-start justify-between">
+                                    <div class="action-icon flex h-10 w-10 items-center justify-center rounded-lg border border-signal-blue/15 bg-signal-blue/5 text-signal-blue">
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3 5 6v5c0 4.7 2.9 8.7 7 10 4.1-1.3 7-5.3 7-10V6l-7-3Z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6"/>
+                                        </svg>
+                                    </div>
+                                    <span class="font-mono text-[9px] text-nexus-600">FW-01</span>
+                                </div>
+                                <div class="mt-5 text-sm font-semibold text-white">Firewall Hardening</div>
+                                <p class="mt-1.5 text-[11px] leading-5 text-nexus-500">Aplicar baseline defensivo y endurecer la superficie de red.</p>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="rounded-md bg-signal-blue/5 px-2 py-1 text-[8px] font-semibold uppercase tracking-wider text-signal-blue">Containment</span>
+                                    <span class="text-xs text-nexus-600 transition">→</span>
+                                </div>
+                            </button>
+
+                            <button onclick="ejecutarAccion('audit')" class="action-btn action-card rounded-xl border border-white/5 bg-white/[.018] p-5 text-left">
+                                <div class="flex items-start justify-between">
+                                    <div class="action-icon flex h-10 w-10 items-center justify-center rounded-lg border border-signal-green/15 bg-signal-green/5 text-signal-green">
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6m-7 4h8M7 21h10a2 2 0 0 0 2-2V7H5v12a2 2 0 0 0 2 2Z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m9 14 2 2 4-4"/>
+                                        </svg>
+                                    </div>
+                                    <span class="font-mono text-[9px] text-nexus-600">AT-02</span>
+                                </div>
+                                <div class="mt-5 text-sm font-semibold text-white">Run Atom Audit</div>
+                                <p class="mt-1.5 text-[11px] leading-5 text-nexus-500">Ejecutar revisión automatizada de la postura de seguridad.</p>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="rounded-md bg-signal-green/5 px-2 py-1 text-[8px] font-semibold uppercase tracking-wider text-signal-green">Audit</span>
+                                    <span class="text-xs text-nexus-600">→</span>
+                                </div>
+                            </button>
+
+                            <button onclick="ejecutarAccion('sniffer')" class="action-btn action-card rounded-xl border border-white/5 bg-white/[.018] p-5 text-left">
+                                <div class="flex items-start justify-between">
+                                    <div class="action-icon flex h-10 w-10 items-center justify-center rounded-lg border border-signal-amber/15 bg-signal-amber/5 text-signal-amber">
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 12s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5Z"/>
+                                            <circle cx="12" cy="12" r="2.2"/>
+                                        </svg>
+                                    </div>
+                                    <span class="font-mono text-[9px] text-nexus-600">IDS-03</span>
+                                </div>
+                                <div class="mt-5 text-sm font-semibold text-white">Network IDS</div>
+                                <p class="mt-1.5 text-[11px] leading-5 text-nexus-500">Inspeccionar tráfico de red y detectar actividad anómala.</p>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="rounded-md bg-signal-amber/5 px-2 py-1 text-[8px] font-semibold uppercase tracking-wider text-signal-amber">Detect</span>
+                                    <span class="text-xs text-nexus-600">→</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Subsystems -->
+                    <div class="panel rounded-2xl p-5 sm:p-6">
+                        <div class="text-[9px] font-bold uppercase tracking-[.22em] text-nexus-600">Subsystems</div>
+                        <h3 class="mt-1 text-base font-semibold text-white">Defensive Stack</h3>
+
+                        <div class="mt-5 space-y-3">
+                            <div class="rounded-xl border border-white/5 bg-white/[.018] p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <span class="subsystem-dot h-2 w-2 rounded-full bg-signal-green"></span>
+                                        <span class="text-xs font-medium text-nexus-200">NexusSIEM API</span>
+                                    </div>
+                                    <span class="font-mono text-[9px] text-signal-green">READY</span>
+                                </div>
+                                <div class="mt-2 pl-5 text-[10px] text-nexus-600">Flask administrative interface</div>
+                            </div>
+
+                            <div class="rounded-xl border border-white/5 bg-white/[.018] p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <span class="h-2 w-2 rounded-full bg-signal-green"></span>
+                                        <span class="text-xs font-medium text-nexus-200">Atom Framework</span>
+                                    </div>
+                                    <span class="font-mono text-[9px] text-signal-green">READY</span>
+                                </div>
+                                <div class="mt-2 pl-5 text-[10px] text-nexus-600">Automated system audit launcher</div>
+                            </div>
+
+                            <div class="rounded-xl border border-white/5 bg-white/[.018] p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <span class="h-2 w-2 rounded-full bg-signal-green"></span>
+                                        <span class="text-xs font-medium text-nexus-200">Microsoft Teams</span>
+                                    </div>
+                                    <span class="font-mono text-[9px] text-signal-green">LINKED</span>
+                                </div>
+                                <div class="mt-2 pl-5 text-[10px] text-nexus-600">Security alert notification channel</div>
+                            </div>
+
+                            <div class="rounded-xl border border-white/5 bg-white/[.018] p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <span class="h-2 w-2 rounded-full bg-signal-green"></span>
+                                        <span class="text-xs font-medium text-nexus-200">Firewall Response</span>
+                                    </div>
+                                    <span class="font-mono text-[9px] text-signal-green">ARMED</span>
+                                </div>
+                                <div class="mt-2 pl-5 text-[10px] text-nexus-600">Automated IP containment via iptables</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- Atom audit results -->
+                <!-- Atom audit results -->
+                <section id="audit" class="panel overflow-hidden rounded-2xl reveal" style="--delay: 250ms">
+                    <div class="border-b border-white/5 px-5 py-5 sm:px-6">
+                        <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                            <div>
+                                <div class="text-[9px] font-bold uppercase tracking-[.22em] text-nexus-600">Security Assessment</div>
+                                <div class="mt-1 flex items-center gap-3">
+                                    <h3 class="text-base font-semibold text-white">Atom Security Audit</h3>
+                                    <span id="audit-live-state" class="inline-flex items-center gap-1.5 rounded-full border border-signal-amber/15 bg-signal-amber/5 px-2 py-1 text-[8px] font-bold uppercase tracking-wider text-signal-amber">
+                                        Checking
+                                    </span>
+                                </div>
+                            </div>
+                            <div id="audit-file-name" class="font-mono text-[9px] text-nexus-600"></div>
+                        </div>
+                    </div>
+
+                    <div id="audit-content" class="min-h-[220px]">
+                        <div class="flex min-h-[220px] items-center justify-center px-5 py-16 text-center">
+                            <div>
+                                <div class="mx-auto h-8 w-8 animate-spin rounded-full border border-white/10 border-t-signal-blue"></div>
+                                <div class="mt-4 text-xs text-nexus-500">Consultando el último reporte de Atom...</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Event stream -->
+                <section id="alerts" class="panel overflow-hidden rounded-2xl reveal" style="--delay: 280ms">
+                    <div class="border-b border-white/5 px-5 py-5 sm:px-6">
+                        <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                            <div>
+                                <div class="text-[9px] font-bold uppercase tracking-[.22em] text-nexus-600">Telemetry Stream</div>
+                                <div class="mt-1 flex items-center gap-3">
+                                    <h3 class="text-base font-semibold text-white">Security Events</h3>
+                                    <span class="inline-flex items-center gap-1.5 rounded-full border border-signal-green/15 bg-signal-green/5 px-2 py-1 text-[8px] font-bold uppercase tracking-wider text-signal-green">
+                                        <span class="h-1.5 w-1.5 rounded-full bg-signal-green"></span>
+                                        Live
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-3 font-mono text-[9px] text-nexus-600">
+                                <span>{{ ns.total }} EVENTS</span>
+                                <span class="h-1 w-1 rounded-full bg-nexus-700"></span>
+                                <span>MAX 50</span>
+                                <span class="h-1 w-1 rounded-full bg-nexus-700"></span>
+                                <span>15S REFRESH</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[1000px] text-left">
+                            <thead class="bg-black/10">
+                                <tr class="border-b border-white/5">
+                                    <th class="px-5 py-3.5 text-[8px] font-bold uppercase tracking-[.2em] text-nexus-600">Timestamp</th>
+                                    <th class="px-5 py-3.5 text-[8px] font-bold uppercase tracking-[.2em] text-nexus-600">Sensor</th>
+                                    <th class="px-5 py-3.5 text-[8px] font-bold uppercase tracking-[.2em] text-nexus-600">Severity</th>
+                                    <th class="px-5 py-3.5 text-[8px] font-bold uppercase tracking-[.2em] text-nexus-600">Event</th>
+                                    <th class="px-5 py-3.5 text-[8px] font-bold uppercase tracking-[.2em] text-nexus-600">Origin</th>
+                                    <th class="px-5 py-3.5 text-[8px] font-bold uppercase tracking-[.2em] text-nexus-600">Response</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="events-body" class="divide-y divide-white/5">
+                                {% if alertas %}
+                                    {% for alerta in alertas %}
+                                    <tr style="--row-index: {{ loop.index0 }}" class="event-row severity-row {% if alerta.nivel == 'CRITICAL' %}severity-critical{% elif alerta.nivel == 'WARNING' %}severity-warning{% else %}severity-info{% endif %} transition hover:bg-white/[.02]">
+                                        <td class="whitespace-nowrap px-5 py-4 align-top">
+                                            <div class="font-mono text-[9px] text-nexus-400">{{ alerta.tiempo }}</div>
+                                        </td>
+
+                                        <td class="px-5 py-4 align-top">
+                                            <div class="text-[11px] font-medium text-nexus-200">{{ alerta.fuente }}</div>
+                                        </td>
+
+                                        <td class="px-5 py-4 align-top">
+                                            {% if alerta.nivel == 'CRITICAL' %}
+                                                <span class="inline-flex items-center gap-2 rounded-md border border-signal-red/15 bg-signal-red/5 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wider text-signal-red">
+                                                    <span class="h-1.5 w-1.5 rounded-full bg-signal-red"></span> Critical
+                                                </span>
+                                            {% elif alerta.nivel == 'WARNING' %}
+                                                <span class="inline-flex items-center gap-2 rounded-md border border-signal-amber/15 bg-signal-amber/5 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wider text-signal-amber">
+                                                    <span class="h-1.5 w-1.5 rounded-full bg-signal-amber"></span> Warning
+                                                </span>
+                                            {% else %}
+                                                <span class="inline-flex items-center gap-2 rounded-md border border-signal-blue/15 bg-signal-blue/5 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wider text-signal-blue">
+                                                    <span class="h-1.5 w-1.5 rounded-full bg-signal-blue"></span> Info
+                                                </span>
+                                            {% endif %}
+                                        </td>
+
+                                        <td class="max-w-[520px] px-5 py-4 align-top">
+                                            <div class="text-[11px] leading-5 text-nexus-300">{{ alerta.mensaje }}</div>
+                                        </td>
+
+                                        <td class="px-5 py-4 align-top">
+                                            <div class="max-w-[220px] font-mono text-[9px] leading-5 text-nexus-500">{{ alerta.ubicacion if alerta.ubicacion else 'N/A' }}</div>
+                                        </td>
+
+                                        <td class="px-5 py-4 align-top">
+                                            <div class="font-mono text-[9px] leading-5 text-nexus-400">{{ alerta.accion }}</div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="px-5 py-20 text-center">
+                                            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-signal-green/15 bg-signal-green/5">
+                                                <svg class="h-6 w-6 text-signal-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5 10 17l9-10"/>
+                                                </svg>
+                                            </div>
+                                            <div class="mt-4 text-sm font-medium text-nexus-300">No security events in the buffer</div>
+                                            <div class="mt-1 text-xs text-nexus-600">NexusSIEM continúa monitorizando el nodo.</div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <footer class="flex flex-col gap-2 border-t border-white/5 py-5 text-[9px] font-mono text-nexus-700 sm:flex-row sm:items-center sm:justify-between">
+                    <span>NEXUSSIEM // BLUE TEAM COMMAND CENTER</span>
+                    <span>DEFENSIVE OPERATIONS NODE</span>
+                </footer>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div id="toast-container" class="pointer-events-none fixed bottom-5 right-5 z-50 flex w-[min(360px,calc(100vw-40px))] flex-col gap-3"></div>
+
+<script>
+    let ultimoReporte = null;
+    let ultimoEstadoEventos = '';
+
+    function escaparHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto ?? '';
+        return div.innerHTML;
+    }
+
+    function mostrarToast(mensaje, tipo = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+
+        const tono = tipo === 'error'
+            ? 'border-signal-red/20 bg-nexus-900 text-signal-red'
+            : 'border-signal-green/20 bg-nexus-900 text-signal-green';
+
+        toast.className = `toast pointer-events-auto rounded-xl border px-4 py-3 shadow-panel ${tono}`;
+        toast.innerHTML = `
+            <div class="flex items-start gap-3">
+                <div class="mt-1 h-2 w-2 shrink-0 rounded-full bg-current"></div>
+                <div>
+                    <div class="text-[9px] font-bold uppercase tracking-[.16em]">
+                        ${tipo === 'error' ? 'Action failed' : 'Action sent'}
+                    </div>
+                    <div class="mt-1 text-xs leading-5 text-nexus-300">${escaparHtml(mensaje)}</div>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 4500);
+    }
+
+    function animarNumeros() {
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        document.querySelectorAll('.metric-number[data-target]').forEach((el) => {
+            const target = Number(el.dataset.target || 0);
+
+            if (reduced || target === 0) {
+                el.textContent = target.toLocaleString('en-US');
+                return;
+            }
+
+            const duration = 700;
+            const start = performance.now();
+
+            function tick(now) {
+                const progress = Math.min((now - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                el.textContent = Math.round(target * eased).toLocaleString('en-US');
+
+                if (progress < 1) requestAnimationFrame(tick);
+            }
+
+            requestAnimationFrame(tick);
+        });
+    }
+
+    function actualizarContadores(alertas) {
+        const total = alertas.length;
+        const critical = alertas.filter(a => a.nivel === 'CRITICAL').length;
+        const warning = alertas.filter(a => a.nivel === 'WARNING').length;
+        const blocked = alertas.filter(a => (a.accion || '').toLowerCase().includes('bloque')).length;
+
+        const values = {
+            total,
+            critical,
+            warning,
+            blocked,
+            'telemetry-total': total
+        };
+
+        Object.entries(values).forEach(([key, value]) => {
+            const el = document.querySelector(`[data-live-key="${key}"]`);
+            if (el) el.dataset.target = value;
+        });
+
+        animarNumeros();
+    }
+
+    function severidadHtml(nivel) {
+        if (nivel === 'CRITICAL') {
+            return '<span class="inline-flex items-center gap-2 rounded-md border border-signal-red/15 bg-signal-red/5 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wider text-signal-red"><span class="h-1.5 w-1.5 rounded-full bg-signal-red"></span> Critical</span>';
+        }
+
+        if (nivel === 'WARNING') {
+            return '<span class="inline-flex items-center gap-2 rounded-md border border-signal-amber/15 bg-signal-amber/5 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wider text-signal-amber"><span class="h-1.5 w-1.5 rounded-full bg-signal-amber"></span> Warning</span>';
+        }
+
+        return '<span class="inline-flex items-center gap-2 rounded-md border border-signal-blue/15 bg-signal-blue/5 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wider text-signal-blue"><span class="h-1.5 w-1.5 rounded-full bg-signal-blue"></span> Info</span>';
+    }
+
+    function renderAlertas(alertas) {
+        const body = document.getElementById('events-body');
+        if (!body) return;
+
+        const estado = JSON.stringify(alertas);
+        if (estado === ultimoEstadoEventos) return;
+        ultimoEstadoEventos = estado;
+
+        if (!alertas.length) {
+            body.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-5 py-20 text-center">
+                        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-signal-green/15 bg-signal-green/5">
+                            <svg class="h-6 w-6 text-signal-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5 10 17l9-10"/>
+                            </svg>
+                        </div>
+                        <div class="mt-4 text-sm font-medium text-nexus-300">No security events in the buffer</div>
+                        <div class="mt-1 text-xs text-nexus-600">NexusSIEM continúa monitorizando el nodo.</div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        body.innerHTML = alertas.map((alerta, index) => {
+            const severityClass = alerta.nivel === 'CRITICAL'
+                ? 'severity-critical'
+                : (alerta.nivel === 'WARNING' ? 'severity-warning' : 'severity-info');
+
+            return `
+                <tr style="--row-index: ${index}" class="event-row severity-row ${severityClass} transition hover:bg-white/[.02]">
+                    <td class="whitespace-nowrap px-5 py-4 align-top">
+                        <div class="font-mono text-[9px] text-nexus-400">${escaparHtml(alerta.tiempo)}</div>
+                    </td>
+                    <td class="px-5 py-4 align-top">
+                        <div class="text-[11px] font-medium text-nexus-200">${escaparHtml(alerta.fuente)}</div>
+                    </td>
+                    <td class="px-5 py-4 align-top">${severidadHtml(alerta.nivel)}</td>
+                    <td class="max-w-[520px] px-5 py-4 align-top">
+                        <div class="text-[11px] leading-5 text-nexus-300">${escaparHtml(alerta.mensaje)}</div>
+                    </td>
+                    <td class="px-5 py-4 align-top">
+                        <div class="max-w-[220px] font-mono text-[9px] leading-5 text-nexus-500">${escaparHtml(alerta.ubicacion || 'N/A')}</div>
+                    </td>
+                    <td class="px-5 py-4 align-top">
+                        <div class="font-mono text-[9px] leading-5 text-nexus-400">${escaparHtml(alerta.accion || 'Ninguna')}</div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderAudit(report) {
+        const container = document.getElementById('audit-content');
+        const state = document.getElementById('audit-live-state');
+        const filename = document.getElementById('audit-file-name');
+
+        if (!container || !state || !filename) return;
+
+        if (!report) {
+            state.className = 'inline-flex items-center gap-1.5 rounded-full border border-signal-amber/15 bg-signal-amber/5 px-2 py-1 text-[8px] font-bold uppercase tracking-wider text-signal-amber';
+            state.textContent = 'Waiting';
+            filename.textContent = '';
+
+            container.innerHTML = `
+                <div class="flex min-h-[220px] items-center justify-center px-5 py-16 text-center">
+                    <div>
+                        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-signal-amber/15 bg-signal-amber/5">
+                            <svg class="h-6 w-6 text-signal-amber" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01"/>
+                                <circle cx="12" cy="12" r="8"/>
+                            </svg>
+                        </div>
+                        <div class="mt-4 text-sm font-medium text-nexus-300">No Atom audit available</div>
+                        <div class="mt-1 text-xs text-nexus-600">Ejecuta <span class="font-mono text-nexus-400">Run Atom Audit</span> para generar el primer reporte.</div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        state.className = 'inline-flex items-center gap-1.5 rounded-full border border-signal-green/15 bg-signal-green/5 px-2 py-1 text-[8px] font-bold uppercase tracking-wider text-signal-green';
+        state.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-signal-green"></span> Live report';
+        filename.textContent = report.filename || '';
+
+        const summary = report.summary || {};
+        const status = summary.status || {};
+        const score = Number(summary.score || 0);
+        const rating = summary.rating || 'UNKNOWN';
+        const total = Number(summary.total ?? (report.findings || []).length);
+
+        let tone = 'green';
+        if (score < 50) tone = 'red';
+        else if (score < 75) tone = 'amber';
+
+        const toneClass = tone === 'green' ? 'signal-green' : (tone === 'amber' ? 'signal-amber' : 'signal-red');
+
+        const findingsHtml = (report.findings || []).map((finding, index) => {
+            const findingStatus = String(finding.status || 'FAIL').toUpperCase();
+            let badge = 'border-signal-red/15 bg-signal-red/5 text-signal-red';
+
+            if (findingStatus === 'PASS') badge = 'border-signal-green/15 bg-signal-green/5 text-signal-green';
+            else if (findingStatus === 'WARNING') badge = 'border-signal-amber/15 bg-signal-amber/5 text-signal-amber';
+
+            return `
+                <details class="group bg-white/[.006] transition hover:bg-white/[.012]">
+                    <summary class="flex cursor-pointer list-none items-center gap-4 px-5 py-4 sm:px-6">
+                        <div class="w-16 shrink-0 font-mono text-[9px] text-nexus-700">${String(index + 1).padStart(2, '0')}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="truncate text-[11px] font-medium text-nexus-200">${escaparHtml(finding.title || 'Untitled finding')}</div>
+                            <div class="mt-1 flex flex-wrap items-center gap-2 text-[9px] text-nexus-600">
+                                <span>${escaparHtml(finding.category || 'Uncategorized')}</span>
+                                ${finding.reference ? '<span class="h-1 w-1 rounded-full bg-nexus-700"></span><span class="font-mono">' + escaparHtml(finding.reference) + '</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="hidden sm:block shrink-0">
+                            <span class="rounded-md border px-2 py-1 text-[8px] font-bold uppercase tracking-wider ${badge}">${escaparHtml(findingStatus)}</span>
+                        </div>
+                        <div class="shrink-0 text-nexus-600 transition group-open:rotate-180">⌄</div>
+                    </summary>
+
+                    <div class="border-t border-white/5 bg-black/10 px-5 py-4 sm:px-[calc(1.5rem+4rem)]">
+                        <div class="grid gap-4 lg:grid-cols-2">
+                            <div>
+                                <div class="text-[8px] font-bold uppercase tracking-[.18em] text-nexus-700">Details</div>
+                                <p class="mt-2 text-[10px] leading-5 text-nexus-400">${escaparHtml(finding.details || 'No details provided.')}</p>
+                            </div>
+                            <div>
+                                <div class="text-[8px] font-bold uppercase tracking-[.18em] text-nexus-700">Recommendation</div>
+                                <p class="mt-2 text-[10px] leading-5 text-nexus-400">${escaparHtml(finding.recommendation || 'No recommendation provided.')}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex flex-wrap gap-2 font-mono text-[8px] text-nexus-600">
+                            <span class="rounded-md border border-white/5 bg-white/[.02] px-2 py-1">SEVERITY: ${escaparHtml(finding.severity || 'N/A')}</span>
+                            <span class="rounded-md border border-white/5 bg-white/[.02] px-2 py-1">MODULE: ${escaparHtml(finding.module || 'N/A')}</span>
+                            ${finding.timestamp ? '<span class="rounded-md border border-white/5 bg-white/[.02] px-2 py-1">TIME: ' + escaparHtml(finding.timestamp) + '</span>' : ''}
+                        </div>
+                    </div>
+                </details>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="grid gap-5 border-b border-white/5 p-5 sm:p-6 lg:grid-cols-[280px_1fr]">
+                <div class="rounded-xl border border-white/5 bg-black/10 p-5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold uppercase tracking-[.2em] text-nexus-600">Security Score</span>
+                        <span class="font-mono text-[9px] text-nexus-600">ATOM</span>
+                    </div>
+                    <div class="mt-5 flex items-end gap-2">
+                        <span class="text-5xl font-semibold tracking-tight text-white">${score}</span>
+                        <span class="pb-2 font-mono text-xs text-nexus-600">/100</span>
+                    </div>
+                    <div class="mt-5 h-2 overflow-hidden rounded-full bg-nexus-800">
+                        <div class="h-full rounded-full bg-${toneClass}" style="width: ${Math.max(0, Math.min(score, 100))}%"></div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <span class="text-[9px] uppercase tracking-[.16em] text-nexus-600">Rating</span>
+                        <span class="font-mono text-[10px] font-semibold text-${toneClass}">${escaparHtml(rating)}</span>
+                    </div>
+                    <div class="mt-4 border-t border-white/5 pt-4 text-[9px] text-nexus-600">
+                        Generated:
+                        <span class="font-mono text-nexus-400">${escaparHtml(report.generated || 'N/A')}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="mb-3">
+                        <div class="text-[9px] font-bold uppercase tracking-[.2em] text-nexus-600">Assessment Summary</div>
+                        <div class="mt-1 text-xs text-nexus-400">${total} findings returned by ${escaparHtml(summary.module || 'Atom')}</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div class="rounded-xl border border-signal-green/10 bg-signal-green/[.025] p-4">
+                            <div class="text-[9px] uppercase tracking-[.16em] text-nexus-600">Pass</div>
+                            <div class="mt-3 text-2xl font-semibold text-white">${Number(status.PASS || 0)}</div>
+                        </div>
+                        <div class="rounded-xl border border-signal-amber/10 bg-signal-amber/[.025] p-4">
+                            <div class="text-[9px] uppercase tracking-[.16em] text-nexus-600">Warning</div>
+                            <div class="mt-3 text-2xl font-semibold text-white">${Number(status.WARNING || 0)}</div>
+                        </div>
+                        <div class="rounded-xl border border-signal-red/10 bg-signal-red/[.025] p-4">
+                            <div class="text-[9px] uppercase tracking-[.16em] text-nexus-600">Fail</div>
+                            <div class="mt-3 text-2xl font-semibold text-white">${Number(status.FAIL || 0)}</div>
+                        </div>
+                        <div class="rounded-xl border border-white/5 bg-white/[.018] p-4">
+                            <div class="text-[9px] uppercase tracking-[.16em] text-nexus-600">Findings</div>
+                            <div class="mt-3 text-2xl font-semibold text-white">${total}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 rounded-xl border border-white/5 bg-white/[.012] p-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold uppercase tracking-[.18em] text-nexus-600">Assessment posture</span>
+                            <span class="font-mono text-[9px] text-${toneClass}">${escaparHtml(rating)}</span>
+                        </div>
+                        <div class="mt-3 text-[11px] leading-5 text-nexus-400">
+                            Atom evaluó la configuración del nodo y generó un reporte estructurado para revisión del equipo Blue Team.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="px-5 py-4 sm:px-6">
+                    <div class="text-[9px] font-bold uppercase tracking-[.2em] text-nexus-600">Findings</div>
+                </div>
+                <div class="divide-y divide-white/5">
+                    ${findingsHtml || '<div class="px-5 py-10 text-center text-xs text-nexus-600">No findings returned.</div>'}
+                </div>
+            </div>
+        `;
+
+        const scoreNumber = container.querySelector('.text-5xl');
+        if (scoreNumber) {
+            scoreNumber.classList.add('metric-number');
+            scoreNumber.dataset.target = score;
+            scoreNumber.textContent = '0';
+            animarNumeros();
+        }
+    }
+
+    async function actualizarEstado() {
+        try {
+            const response = await fetch('/api/state', {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+
+            if (response.status === 401) {
+                mostrarToast('La sesión administrativa ya no es válida.', 'error');
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            const liveState = document.getElementById('audit-live-state');
+            if (liveState) {
+                liveState.className = 'inline-flex items-center gap-1.5 rounded-full border border-signal-green/15 bg-signal-green/5 px-2 py-1 text-[8px] font-bold uppercase tracking-wider text-signal-green';
+                liveState.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-signal-green"></span> Live';
+            }
+
+            actualizarContadores(data.alerts || []);
+            renderAlertas(data.alerts || []);
+
+            const reporte = data.audit || null;
+            const identificadorReporte = reporte
+                ? `${reporte.filename}|${reporte.generated || ''}`
+                : 'none';
+
+            if (identificadorReporte !== ultimoReporte) {
+                ultimoReporte = identificadorReporte;
+                renderAudit(reporte);
+            }
+        } catch (error) {
+            const state = document.getElementById('audit-live-state');
+            if (state) {
+                state.className = 'inline-flex items-center gap-1.5 rounded-full border border-signal-red/15 bg-signal-red/5 px-2 py-1 text-[8px] font-bold uppercase tracking-wider text-signal-red';
+                state.textContent = 'Offline';
+            }
+        }
+    }
+
+    async function ejecutarAccion(herramienta) {
+        const botones = document.querySelectorAll('.action-btn');
+        botones.forEach(b => b.disabled = true);
+
+        try {
+            const response = await fetch(`/api/run/${herramienta}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.error || `HTTP ${response.status}`);
+            }
+
+            mostrarToast(data.message || 'La acción fue enviada correctamente.');
+
+            // Consultar inmediatamente y después dejar el polling normal.
+            setTimeout(actualizarEstado, 700);
+        } catch (error) {
+            mostrarToast(error.message || 'No se pudo ejecutar la acción.', 'error');
+        } finally {
+            setTimeout(() => botones.forEach(b => b.disabled = false), 500);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        actualizarEstado();
+        setInterval(actualizarEstado, 3000);
+    });
+</script>
+</body>
+</html>

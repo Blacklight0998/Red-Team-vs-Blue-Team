@@ -1,0 +1,22 @@
+# Python environments and caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Generated logs and reports
+*.log
+red_team/reports/*
+!red_team/reports/.gitkeep
+red_team/authorized_target.txt
+
+# Packet captures may contain private or identifying data
+*.pcap
+*.pcapng
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
